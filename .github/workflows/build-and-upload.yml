@@ -1,0 +1,107 @@
+name: Build and Upload to App Store
+
+on:
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: macos-latest
+    
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install the Apple certificate and provisioning profile
+        env:
+          APPSTORE_PRIVATE_KEY: ${{ secrets.APPSTORE_PRIVATE_KEY }}
+          APPSTORE_KEY_ID: MC9826J9F9
+          APPSTORE_ISSUER_ID: e87f2719-7e3a-4921-9383-61760b3a72ee
+          TEAM_ID: 39PL27N3F9
+          BUNDLE_ID: com.ERDALYILDIRIM.ZooBLOCK
+        run: |
+          # API Key dosyasını oluştur
+          mkdir -p ~/private_keys
+          echo "$APPSTORE_PRIVATE_KEY" > ~/private_keys/AuthKey_MC9826J9F9.p8
+
+      - name: Set up code signing
+        env:
+          TEAM_ID: 39PL27N3F9
+          BUNDLE_ID: com.ERDALYILDIRIM.ZooBLOCK
+          APPSTORE_KEY_ID: MC9826J9F9
+          APPSTORE_ISSUER_ID: e87f2719-7e3a-4921-9383-61760b3a72ee
+          APPSTORE_PRIVATE_KEY: ${{ secrets.APPSTORE_PRIVATE_KEY }}
+        run: |
+          # Geçici keychain oluştur
+          KEYCHAIN_PATH=$RUNNER_TEMP/app-signing.keychain-db
+          KEYCHAIN_PASSWORD=temppassword
+          
+          security create-keychain -p "$KEYCHAIN_PASSWORD" "$KEYCHAIN_PATH"
+          security set-keychain-settings -lut 21600 "$KEYCHAIN_PATH"
+          security unlock-keychain -p "$KEYCHAIN_PASSWORD" "$KEYCHAIN_PATH"
+          security list-keychain -d user -s "$KEYCHAIN_PATH"
+          
+          # Distribution sertifikası oluştur (API key ile)
+          mkdir -p ~/private_keys
+          echo "$APPSTORE_PRIVATE_KEY" > ~/private_keys/AuthKey_${APPSTORE_KEY_ID}.p8
+          
+          # Provisioning profile indir
+          xcrun altool --list-apps \
+            --apiKey "$APPSTORE_KEY_ID" \
+            --apiIssuer "$APPSTORE_ISSUER_ID" || true
+
+      - name: Build Archive
+        env:
+          TEAM_ID: 39PL27N3F9
+          BUNDLE_ID: com.ERDALYILDIRIM.ZooBLOCK
+        run: |
+          xcodebuild \
+            -project ZooBLOCK.xcodeproj \
+            -scheme ZooBLOCK \
+            -archivePath $RUNNER_TEMP/ZooBLOCK.xcarchive \
+            -sdk iphoneos \
+            -configuration Release \
+            -destination "generic/platform=iOS" \
+            DEVELOPMENT_TEAM="$TEAM_ID" \
+            CODE_SIGN_STYLE=Automatic \
+            clean archive
+
+      - name: Export IPA
+        env:
+          TEAM_ID: 39PL27N3F9
+          BUNDLE_ID: com.ERDALYILDIRIM.ZooBLOCK
+        run: |
+          cat > $RUNNER_TEMP/ExportOptions.plist << EOF
+          <?xml version="1.0" encoding="UTF-8"?>
+          <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+          <plist version="1.0">
+          <dict>
+            <key>method</key>
+            <string>app-store</string>
+            <key>teamID</key>
+            <string>${TEAM_ID}</string>
+            <key>uploadBitcode</key>
+            <false/>
+            <key>uploadSymbols</key>
+            <true/>
+          </dict>
+          </plist>
+          EOF
+          
+          xcodebuild \
+            -exportArchive \
+            -archivePath $RUNNER_TEMP/ZooBLOCK.xcarchive \
+            -exportOptionsPlist $RUNNER_TEMP/ExportOptions.plist \
+            -exportPath $RUNNER_TEMP/build \
+            -allowProvisioningUpdates \
+            -authenticationKeyPath ~/private_keys/AuthKey_MC9826J9F9.p8 \
+            -authenticationKeyID MC9826J9F9 \
+            -authenticationKeyIssuerID e87f2719-7e3a-4921-9383-61760b3a72ee
+
+      - name: Upload to App Store
+        run: |
+          xcrun altool --upload-app \
+            -f $RUNNER_TEMP/build/ZooBLOCK.ipa \
+            -t ios \
+            --apiKey MC9826J9F9 \
+            --apiIssuer e87f2719-7e3a-4921-9383-61760b3a72ee \
+            --private-keys ~/private_keys
