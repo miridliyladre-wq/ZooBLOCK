@@ -55,7 +55,7 @@ jobs:
           BUNDLE_ID: com.ERDALYILDIRIM.ZooBLOCK
         run: |
           xcodebuild \
-            -project ZooBLOCK_iOS/ZooBLOCK.xcodeproj \
+            -project ZooBLOCK.xcodeproj \
             -scheme ZooBLOCK \
             -archivePath $RUNNER_TEMP/ZooBLOCK.xcarchive \
             -sdk iphoneos \
