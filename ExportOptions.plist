@@ -17,5 +17,7 @@
     </dict>
     <key>uploadSymbols</key>
     <true/>
+    <key>manageAppVersionAndBuildNumber</key>
+    <true/>
 </dict>
 </plist>
