@@ -1,4 +1,48 @@
-- name: Install Certificate
+name: ZooBLOCK Final Build
+on:
+  push:
+    branches: [ main ]
+jobs:
+  deploy:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Install Certificate and Profile
+        env:
+          CERT_BASE64: ${{ secrets.BUILD_CERTIFICATE_BASE64 }}
+          PROV_BASE64: ${{ secrets.BUILD_PROVISION_PROFILE_BASE64 }}
+          CERT_PASS: ${{ secrets.P12_PASSWORD }}
+        run: |
+          # Sertifikayı ve Profili Hazırla
+          echo $CERT_BASE64 | base64 --decode > cert.cer
+          echo $PROV_BASE64 | base64 --decode > profile.mobileprovision
+          
+          # Keychain (Anahtarlık) Oluştur
+          security create-keychain -p "$CERT_PASS" build.keychain
+          security default-keychain -s build.keychain
+          security unlock-keychain -p "$CERT_PASS" build.keychain
+          security import cert.cer -k build.keychain -A -T /usr/bin/codesign
+          security set-key-partition-list -S apple-tool:,apple: -s -k "$CERT_PASS" build.keychain
+          
+          # Profili Yerine Koy
+          mkdir -p ~/Library/MobileDevice/Provisioning\ Profiles
+          cp profile.mobileprovision ~/Library/MobileDevice/Provisioning\ Profiles/
+          
+      - name: Build Archive
+        run: |
+          xcodebuild -project ZooBLOCK.xcodeproj \
+            -scheme ZooBLOCK \
+            -sdk iphoneos \
+            -configuration Release \
+            archive -archivePath $PWD/build/ZooBLOCK.xcarchive
+            
+      - name: Export IPA
+        run: |
+          xcodebuild -exportArchive \
+            -archivePath $PWD/build/ZooBLOCK.xcarchive \
+            -exportPath $PWD/build/out \
+            -exportOptionsPlist ExportOptions.plist- name: Install Certificate
         env:
           CERT_BASE64: ${{ secrets.BUILD_CERTIFICATE_BASE64 }}
           PROV_BASE64: ${{ secrets.BUILD_PROVISION_PROFILE_BASE64 }}
