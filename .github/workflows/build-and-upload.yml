@@ -18,6 +18,7 @@ jobs:
 
       - name: Build and Archive
         run: |
+          # CODE_SIGNING_ALLOWED=YES ekleyerek bulutun imzalama yapmasına izin veriyoruz
           xcodebuild -project ZooBLOCK.xcodeproj \
                      -scheme ZooBLOCK \
                      -sdk iphoneos \
@@ -26,10 +27,13 @@ jobs:
                      -allowProvisioningUpdates \
                      -authenticationKeyID ${{ secrets.APP_STORE_CONNECT_KEY_ID }} \
                      -authenticationKeyIssuerID ${{ secrets.APP_STORE_CONNECT_ISSUER_ID }} \
-                     archive
+                     archive \
+                     CODE_SIGNING_ALLOWED=YES \
+                     CODE_SIGNING_STYLE=Automatic
 
-      - name: Upload to App Store
+      - name: Export and Upload
         run: |
+          # IPA paketini oluşturup doğrudan gönderiyoruz
           xcrun altool --upload-app \
             --type ios \
             --file $PWD/build/ZooBLOCK.xcarchive \
