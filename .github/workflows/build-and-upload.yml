@@ -1,13 +1,16 @@
-name: ZooBLOCK iOS Build
+name: iOS Build
+
 on:
   push:
     branches: [ main ]
+  workflow_dispatch:
 
 jobs:
-  deploy:
+  build:
     runs-on: macos-latest
+
     steps:
-      - name: Checkout Repository
+      - name: Checkout repository
         uses: actions/checkout@v4
 
       - name: Install Certificate and Profile
@@ -16,32 +19,46 @@ jobs:
           PROV_BASE64: ${{ secrets.BUILD_PROVISION_PROFILE_BASE64 }}
           CERT_PASS: ${{ secrets.P12_PASSWORD }}
         run: |
-          # 1. Dosyaları oluştur
-          echo $CERT_BASE64 | base64 --decode > cert.cer
-          echo $PROV_BASE64 | base64 --decode > profile.mobileprovision
+          # Sertifika dosyasını oluştur (.p12)
+          echo $CERT_BASE64 | base64 --decode > certificate.p12
           
-          # 2. Geçici Keychain oluştur ve sertifikayı içine aktar
+          # Profil dosyasını oluştur (.mobileprovision)
+          # Senin az önce attığın metinden profil adını "ZooBLOCK_Final" olarak gördüm.
+          echo $PROV_BASE64 | base64 --decode > ZooBLOCK_Final.mobileprovision
+          
+          # Geçici bir anahtarlık (keychain) oluştur
           security create-keychain -p "$CERT_PASS" build.keychain
           security default-keychain -s build.keychain
           security unlock-keychain -p "$CERT_PASS" build.keychain
-          security import cert.cer -k build.keychain -A -T /usr/bin/codesign
+          
+          # Sertifikayı anahtarlığa aktar
+          security import certificate.p12 -k build.keychain -P "$CERT_PASS" -A -T /usr/bin/codesign
           security set-key-partition-list -S apple-tool:,apple: -s -k "$CERT_PASS" build.keychain
           
-          # 3. Profili Apple klasörüne yerleştir
+          # Provisioning Profilini sisteme kopyala
           mkdir -p ~/Library/MobileDevice/Provisioning\ Profiles
-          cp profile.mobileprovision ~/Library/MobileDevice/Provisioning\ Profiles/
+          cp ZooBLOCK_Final.mobileprovision ~/Library/MobileDevice/Provisioning\ Profiles/
 
-      - name: Build and Archive
+      - name: Install dependencies (Eğer Flutter/React Native ise buraya ekle)
         run: |
-          xcodebuild -project ZooBLOCK.xcodeproj \
-            -scheme ZooBLOCK \
-            -sdk iphoneos \
-            -configuration Release \
-            archive -archivePath $PWD/build/ZooBLOCK.xcarchive
+          # Örnek: flutter pub get veya npm install
+          # Eğer Xcode projesiyse bu adımı geçebilirsin.
+
+      - name: Build iOS App
+        run: |
+          # Xcode projenin adını ve scheme adını kendi projenle değiştir!
+          xcodebuild -project YourProject.xcodeproj \
+                     -scheme YourScheme \
+                     -archivePath $PWD/build/YourApp.xcarchive \
+                     -sdk iphoneos \
+                     -configuration Release \
+                     archive \
+                     CODE_SIGN_STYLE=Manual \
+                     PROVISIONING_PROFILE_SPECIFIER="ZooBLOCK_Final"
 
       - name: Export IPA
         run: |
           xcodebuild -exportArchive \
-            -archivePath $PWD/build/ZooBLOCK.xcarchive \
-            -exportPath $PWD/build/out \
-            -exportOptionsPlist ExportOptions.plist
+                     -archivePath $PWD/build/YourApp.xcarchive \
+                     -exportOptionsPlist ExportOptions.plist \
+                     -exportPath $PWD/build/output
