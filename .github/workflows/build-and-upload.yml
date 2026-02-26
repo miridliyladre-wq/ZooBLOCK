@@ -1,4 +1,4 @@
-name: ZooBLOCK App Store Upload
+name: ZooBLOCK Final Deploy
 
 on:
   push:
@@ -26,7 +26,9 @@ jobs:
                      -allowProvisioningUpdates \
                      -authenticationKeyID ${{ secrets.APP_STORE_CONNECT_KEY_ID }} \
                      -authenticationKeyIssuerID ${{ secrets.APP_STORE_CONNECT_ISSUER_ID }} \
-                     archive
+                     archive \
+                     CODE_SIGNING_ALLOWED=YES \
+                     CODE_SIGNING_STYLE=Automatic
 
       - name: Export IPA
         run: |
@@ -37,11 +39,3 @@ jobs:
                      -allowProvisioningUpdates \
                      -authenticationKeyID ${{ secrets.APP_STORE_CONNECT_KEY_ID }} \
                      -authenticationKeyIssuerID ${{ secrets.APP_STORE_CONNECT_ISSUER_ID }}
-
-      - name: Upload to App Store
-        run: |
-          xcrun altool --upload-app \
-            --type ios \
-            --file $PWD/build/output/ZooBLOCK.ipa \
-            --apiKey ${{ secrets.APP_STORE_CONNECT_KEY_ID }} \
-            --apiIssuer ${{ secrets.APP_STORE_CONNECT_ISSUER_ID }}
