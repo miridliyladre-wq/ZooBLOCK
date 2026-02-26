@@ -16,9 +16,8 @@ jobs:
           mkdir -p ~/.appstoreconnect/private_keys
           echo "${{ secrets.APP_STORE_CONNECT_PRIVATE_KEY }}" > ~/.appstoreconnect/private_keys/AuthKey_${{ secrets.APP_STORE_CONNECT_KEY_ID }}.p8
 
-      - name: Build and Archive
+      - name: Build Archive
         run: |
-          # CODE_SIGNING_ALLOWED=YES ekleyerek bulutun imzalama yapmasına izin veriyoruz
           xcodebuild -project ZooBLOCK.xcodeproj \
                      -scheme ZooBLOCK \
                      -sdk iphoneos \
@@ -27,15 +26,22 @@ jobs:
                      -allowProvisioningUpdates \
                      -authenticationKeyID ${{ secrets.APP_STORE_CONNECT_KEY_ID }} \
                      -authenticationKeyIssuerID ${{ secrets.APP_STORE_CONNECT_ISSUER_ID }} \
-                     archive \
-                     CODE_SIGNING_ALLOWED=YES \
-                     CODE_SIGNING_STYLE=Automatic
+                     archive
 
-      - name: Export and Upload
+      - name: Export IPA
         run: |
-          # IPA paketini oluşturup doğrudan gönderiyoruz
+          xcodebuild -exportArchive \
+                     -archivePath $PWD/build/ZooBLOCK.xcarchive \
+                     -exportPath $PWD/build/output \
+                     -exportOptionsPlist ExportOptions.plist \
+                     -allowProvisioningUpdates \
+                     -authenticationKeyID ${{ secrets.APP_STORE_CONNECT_KEY_ID }} \
+                     -authenticationKeyIssuerID ${{ secrets.APP_STORE_CONNECT_ISSUER_ID }}
+
+      - name: Upload to App Store
+        run: |
           xcrun altool --upload-app \
             --type ios \
-            --file $PWD/build/ZooBLOCK.xcarchive \
+            --file $PWD/build/output/ZooBLOCK.ipa \
             --apiKey ${{ secrets.APP_STORE_CONNECT_KEY_ID }} \
             --apiIssuer ${{ secrets.APP_STORE_CONNECT_ISSUER_ID }}
