@@ -24,3 +24,14 @@ jobs:
                    -sdk iphoneos \
                    -configuration Release \
                    archive -archivePath $PWD/build/ZooBLOCK.xcarchive
+- name: Build Archive
+  run: |
+    xcodebuild -project ZooBLOCK.xcodeproj \
+               -scheme ZooBLOCK \
+               -sdk iphoneos \
+               -configuration Release \
+               -allowProvisioningUpdates \
+               -authenticationKeyID ${{ secrets.APP_STORE_CONNECT_KEY_ID }} \
+               -authenticationKeyIssuerID ${{ secrets.APP_STORE_CONNECT_ISSUER_ID }} \
+               -archivePath $PWD/build/ZooBLOCK.xcarchive \
+               archive
