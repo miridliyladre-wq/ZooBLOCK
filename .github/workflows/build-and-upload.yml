@@ -1,4 +1,14 @@
-name: ZooBLOCK Final Deploy
+- name: Install Certificate
+        env:
+          CERT_BASE64: ${{ secrets.BUILD_CERTIFICATE_BASE64 }}
+          PROV_BASE64: ${{ secrets.BUILD_PROVISION_PROFILE_BASE64 }}
+          CERT_PASS: ${{ secrets.P12_PASSWORD }}
+        run: |
+          echo $CERT_BASE64 | base64 --decode > cert.cer
+          echo $PROV_BASE64 | base64 --decode > profile.mobileprovision
+          # Bu kısım profilin Mac tarafından tanınmasını sağlar
+          mkdir -p ~/Library/MobileDevice/Provisioning\ Profiles
+          cp profile.mobileprovision ~/Library/MobileDevice/Provisioning\ Profiles/name: ZooBLOCK Final Deploy
 
 on:
   push:
