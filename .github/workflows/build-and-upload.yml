@@ -1,42 +1,37 @@
-name: App Store Build and Upload
+name: ZooBLOCK App Store Upload
 
 on:
   push:
-    branches: [ "main" ] # Kodunuzu main dalına gönderdiğinizde çalışır
+    branches: [ "main" ]
 
 jobs:
-  build:
+  deploy:
     runs-on: macos-latest
-
     steps:
-    - name: Checkout repository
-      uses: actions/checkout@v4
+      - name: Checkout repository
+        uses: actions/checkout@v4
 
-    - name: Set up Xcode
-      uses: maxim-lobanov/setup-xcode@v1
-      with:
-        xcode-version: 'latest-stable'
+      - name: Setup API Key
+        run: |
+          mkdir -p ~/.appstoreconnect/private_keys
+          echo "${{ secrets.APP_STORE_CONNECT_PRIVATE_KEY }}" > ~/.appstoreconnect/private_keys/AuthKey_${{ secrets.APP_STORE_CONNECT_KEY_ID }}.p8
 
-    - name: Build and Archive
-      env:
-        BUNDLE_ID: ${{ secrets.BUNDLE_ID }}
-      run: |
-        xcodebuild -project ZooBLOCK.xcodeproj \
-                   -scheme ZooBLOCK \
-                   -sdk iphoneos \
-                   -configuration Release \
-                   -archivePath $PWD/build/ZooBLOCK.xcarchive \
-                   clean archive \
-                   CODE_SIGNING_ALLOWED=NO
+      - name: Build and Archive
+        run: |
+          xcodebuild -project ZooBLOCK.xcodeproj \
+                     -scheme ZooBLOCK \
+                     -sdk iphoneos \
+                     -configuration Release \
+                     -archivePath $PWD/build/ZooBLOCK.xcarchive \
+                     -allowProvisioningUpdates \
+                     -authenticationKeyID ${{ secrets.APP_STORE_CONNECT_KEY_ID }} \
+                     -authenticationKeyIssuerID ${{ secrets.APP_STORE_CONNECT_ISSUER_ID }} \
+                     archive
 
-    - name: Export and Upload
-      env:
-        APPLE_ID: ${{ secrets.APPLE_ID }}
-        APPLE_PASSWORD: ${{ secrets.APPLE_PASSWORD }}
-      run: |
-        # Bu adımda uygulamanız paketlenir ve Apple'a gönderilir
-        xcrun altool --upload-app \
-          -f $PWD/build/ZooBLOCK.xcarchive \
-          -t ios \
-          -u "$APPLE_ID" \
-          -p "$APPLE_PASSWORD"
+      - name: Upload to App Store
+        run: |
+          xcrun altool --upload-app \
+            --type ios \
+            --file $PWD/build/ZooBLOCK.xcarchive \
+            --apiKey ${{ secrets.APP_STORE_CONNECT_KEY_ID }} \
+            --apiIssuer ${{ secrets.APP_STORE_CONNECT_ISSUER_ID }}
