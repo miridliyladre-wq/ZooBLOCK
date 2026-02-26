@@ -1,47 +1,16 @@
-name: ZooBLOCK App Store Upload
-
-on:
-  push:
-    branches: [ "main" ]
-
-jobs:
-  deploy:
-    runs-on: macos-latest
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
-
-      - name: Setup API Key
-        run: |
-          mkdir -p ~/.appstoreconnect/private_keys
-          echo "${{ secrets.APP_STORE_CONNECT_PRIVATE_KEY }}" > ~/.appstoreconnect/private_keys/AuthKey_${{ secrets.APP_STORE_CONNECT_KEY_ID }}.p8
-
-      - name: Build Archive
-        run: |
-          xcodebuild -project ZooBLOCK.xcodeproj \
-                     -scheme ZooBLOCK \
-                     -sdk iphoneos \
-                     -configuration Release \
-                     -archivePath $PWD/build/ZooBLOCK.xcarchive \
-                     -allowProvisioningUpdates \
-                     -authenticationKeyID ${{ secrets.APP_STORE_CONNECT_KEY_ID }} \
-                     -authenticationKeyIssuerID ${{ secrets.APP_STORE_CONNECT_ISSUER_ID }} \
-                     archive
-
-      - name: Export IPA
-        run: |
-          xcodebuild -exportArchive \
-                     -archivePath $PWD/build/ZooBLOCK.xcarchive \
-                     -exportPath $PWD/build/output \
-                     -exportOptionsPlist ExportOptions.plist \
-                     -allowProvisioningUpdates \
-                     -authenticationKeyID ${{ secrets.APP_STORE_CONNECT_KEY_ID }} \
-                     -authenticationKeyIssuerID ${{ secrets.APP_STORE_CONNECT_ISSUER_ID }}
-
-      - name: Upload to App Store
-        run: |
-          xcrun altool --upload-app \
-            --type ios \
-            --file $PWD/build/output/ZooBLOCK.ipa \
-            --apiKey ${{ secrets.APP_STORE_CONNECT_KEY_ID }} \
-            --apiIssuer ${{ secrets.APP_STORE_CONNECT_ISSUER_ID }}
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <key>destination</key>
+    <string>export</string>
+    <key>method</key>
+    <string>app-store</string>
+    <key>signingStyle</key>
+    <string>automatic</string>
+    <key>teamID</key>
+    <string>39PL27N3F9</string>
+    <key>uploadSymbols</key>
+    <true/>
+</dict>
+</plist>
