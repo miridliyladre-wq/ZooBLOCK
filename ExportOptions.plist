@@ -10,6 +10,11 @@
     <string>automatic</string>
     <key>teamID</key>
     <string>39PL27N3F9</string>
+    <key>provisioningProfiles</key>
+    <dict>
+        <key>com.miridliyladre.ZooBLOCK</key>
+        <string>Automatic</string>
+    </dict>
     <key>uploadSymbols</key>
     <true/>
 </dict>
